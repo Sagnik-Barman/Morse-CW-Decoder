@@ -1,0 +1,42 @@
+# CNN + BiGRU + CTC  (~3.6M params). Good first model; trains fast.
+run_name: crnn
+
+model:
+  arch: crnn
+  conv_channels: [32, 64, 128]
+  conv_dim: 256
+  dropout: 0.1
+  frontend: {n_fft: 256, win_length: 200, hop_length: 64, fmin: 200.0, fmax: 1400.0}
+  encoder: {hidden: 256, layers: 3, dropout: 0.2}
+
+# Overrides of morse/synth.py:SynthConfig (anything not listed keeps its default)
+synth:
+  sample_rate: 8000
+  clip_seconds: 8.0
+  wpm_range: [12, 45]
+
+train:
+  batch_size: 64
+  accum_steps: 1             # raise (and lower batch_size) if the GPU runs out of memory
+  steps: 60000
+  lr: 1.0e-3
+  weight_decay: 1.0e-2
+  warmup_steps: 1000
+  grad_clip: 5.0
+  amp: true
+  amp_dtype: fp16           # fp16 + GradScaler: cuDNN GRU kernels are safest in fp16
+  num_workers: 8             # data is synthesised on the CPU; raise if the GPU is waiting
+  log_every: 100
+  val_every: 2000
+  val_size: 1000
+  seed: 0
+  # Real recordings monitored at every validation (folders or labels.csv files), e.g.
+  #   real_val: [real_data/beacons/rec1, real_data/w1aw]
+  real_val: []
+  select_on: synthetic       # 'real' picks best.pt by real CER -- then keep a separate real TEST set
+  # Curriculum: SNR range widens as training progresses (each stage re-seeds the data stream)
+  curriculum:
+    - {until_step: 4000,  snr_db_range: [10, 30]}
+    - {until_step: 12000, snr_db_range: [0, 30]}
+    - {until_step: 25000, snr_db_range: [-8, 30]}
+    - {until_step: 60000, snr_db_range: [-14, 30]}

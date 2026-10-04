@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+runs/
+samples/
+lm/
+*.pt
+*.wav
+# large off-air recordings and clips (re-create with scripts/record_beacons.py)
+real_data/raw/
+real_data/beacons/
+# keep only the summary chart from results/
+results/*
+results_*/
+!results/summary_cer_vs_snr.png

@@ -1,0 +1,64 @@
+# Fine-tune the CRNN on simulator v3 (added after the held-out Wessex test, 3 Oct 2026).
+# The Wessex recording (busy Saturday-evening band) showed that other stations 100-500 Hz from the
+# beacon, often as strong or stronger, break every model (45-50% CER on busy clips vs 10-13% on quiet
+# ones), while v1/v2 only ever added interference 3-20 dB WEAKER than the target.
+# v3 = v2 plus:
+#   * target always at the centre pitch (650-750 Hz); the slicer / decode_wav --auto-center put it there
+#   * 60% of clips get 1-3 other stations, 50-500 Hz away, -20..+10 dB relative to the target,
+#     sending their own text, fading independently
+#   * interferers also appear in the noise-only clips (correct answer: still nothing)
+# Starts from the v2 model (runs/crnn_ft/best.pt).
+run_name: crnn_ft3
+
+model:
+  arch: crnn
+  conv_channels: [32, 64, 128]
+  conv_dim: 256
+  dropout: 0.1
+  frontend: {n_fft: 256, win_length: 200, hop_length: 64, fmin: 200.0, fmax: 1400.0}
+  encoder: {hidden: 256, layers: 3, dropout: 0.2}
+
+# Overrides of morse/synth.py:SynthConfig (anything not listed keeps its default)
+synth:
+  sample_rate: 8000
+  clip_seconds: 8.0
+  wpm_range: [12, 45]
+  p_fading: 0.6
+  fade_rate_hz_range: [0.1, 8.0]
+  fade_rate_dist: loguniform
+  rician_k_range: [0.0, 3.0]
+  p_empty: 0.08
+  rx_lowcut_range: [50.0, 300.0]
+  text_mix: {qso: 0.2, contest: 0.1, words: 0.2, random: 0.3, callsign: 0.2}
+  # v3: busy band
+  tone_hz_range: [650.0, 750.0]
+  p_qrm: 0.6
+  qrm_count_range: [1, 3]
+  qrm_rel_db_range: [-20.0, 10.0]
+  qrm_offset_hz_range: [50.0, 500.0]
+  qrm_on_empty: true
+  qrm_fading: true
+
+train:
+  batch_size: 64
+  accum_steps: 1             # raise (and lower batch_size) if the GPU runs out of memory
+  steps: 15000
+  init_from: runs/crnn_ft/best.pt   # start from the v2 model
+  lr: 3.0e-4
+  weight_decay: 1.0e-2
+  warmup_steps: 500
+  grad_clip: 5.0
+  amp: true
+  amp_dtype: fp16           # fp16 + GradScaler: cuDNN GRU kernels are safest in fp16
+  num_workers: 8             # data is synthesised on the CPU; raise if the GPU is waiting
+  log_every: 100
+  val_every: 2000
+  val_size: 1000
+  seed: 0
+  # Real recordings monitored at every validation (folders or labels.csv files), e.g.
+  #   real_val: [real_data/beacons/rec1, real_data/w1aw]
+  real_val: [real_data/test_wessex.csv]   # busy-band monitor (used to design v3, so not a test set)
+  select_on: synthetic       # 'real' picks best.pt by real CER -- then keep a separate real TEST set
+  curriculum:
+    - {until_step: 3000,  snr_db_range: [-14, 30]}
+    - {until_step: 15000, snr_db_range: [-20, 30]}

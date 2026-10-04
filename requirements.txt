@@ -1,0 +1,11 @@
+# Install PyTorch with CUDA FIRST, matching your driver (see https://pytorch.org/get-started/locally/), e.g.
+#   pip install torch --index-url https://download.pytorch.org/whl/cu124
+torch>=2.1
+numpy>=1.24
+scipy>=1.10
+soundfile>=0.12
+pyyaml>=6.0
+tqdm>=4.65
+matplotlib>=3.7
+tensorboard>=2.14   # optional, for live training curves
+pytest>=7.0         # optional, for tests/
