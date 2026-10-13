@@ -6,12 +6,16 @@ on simulated signals and on real off-air radio recorded from public receivers in
 
 ## Results at a glance
 
-| Test | Classical DSP decoder | This project (best model) |
+| Test | Classical DSP decoder (`morse/baseline.py`) | This project (best model) |
 |---|---:|---:|
 | Simulated signals, 6–7% character error rate (CER) reached at | +10 dB | **-6 dB** (16 dB more sensitive) |
 | **Held-out real radio** (UK + US receivers, normal band conditions, 71 clips) | 95% CER | **17% CER** |
 | Held-out real radio, all conditions (132 clips) | 109% CER | **38% CER** |
 | Real radio, strong signals (US receiver, ≥ 0 dB) | 8 of 9 callsigns | **9 of 9** |
+
+**Against fldigi**, a widely used classical CW decoder, on the same 132 held-out clips (fldigi at the best of 4 settings):
+**17% vs 58% CER** in normal band conditions, 38% vs 65% overall; on crowded bands neither is clearly better.
+Details, including fldigi's main failure mode, in [`RESULTS.md`](RESULTS.md#fldigi-on-the-same-held-out-clips-13-oct-2026).
 
 - **Real-world test set:** 380+ beacon clips recorded from KiwiSDR receivers in India, Australia, the UK and the USA,
   labelled automatically from the international beacon schedule (`scripts/record_beacons.py`, `scripts/slice_beacons.py`).
@@ -43,6 +47,7 @@ audio (8 kHz) -> log-spectrogram (GPU) -> 2-D CNN -> BiGRU or Conformer -> CTC -
 | `scripts/record_beacons.py` | Records beacons from a public KiwiSDR (via kiwiclient) and slices them, in one command |
 | `scripts/simulate_beacons.py` | Makes a fake beacon recording with known truth, to test the slicer |
 | `scripts/benchmark_real.py` | **Real-audio benchmark**: CER / WER / exact match per system, CER vs measured SNR, and the sim-to-real gap plot |
+| `scripts/benchmark_fldigi.py` | Scores **fldigi** on the same real clips: plays each clip into fldigi through a virtual audio cable and reads the decoded text over XML-RPC |
 | `real_data/README.md` | How to record and label real data (beacons, W1AW, hand-labelled traffic) |
 | `scripts/build_lm.py` | Build the character n-gram LM used in beam search |
 | `scripts/make_samples.py` | Write example clips as .wav files (+ spectrograms) so you can listen to the data |

@@ -314,3 +314,50 @@ Wessex and the US recording together form a 132-clip held-out set for the first 
    condition the model explicitly on the target pitch (e.g. a pitch-offset input channel), mix in the real busy-band clips
    with schedule labels, or separate signals before decoding (detect each tone, then decode each one). **CRNN-ft3 is not recommended.**
 5. Recommended models: **Conformer-ft** for normal (quiet) conditions; CRNN v1 is the most robust on busy bands.
+
+## fldigi on the same held-out clips (13 Oct 2026)
+
+The comparisons above are against `morse/baseline.py`, a simple classical decoder written for this project. To check the
+result against a decoder people actually use, the same 132 held-out clips were decoded by **fldigi 4.2.13** (Windows), a widely
+used open-source CW decoder. fldigi has no batch mode, so `scripts/benchmark_fldigi.py` plays each clip into it in real time
+through a virtual audio cable (VB-Audio) and reads the decoded text back over fldigi's XML-RPC interface. Each clip is padded to
+8 s with matched noise exactly as the models received it; fldigi is set to CW at 700 Hz, 22 WPM with speed tracking, AFC off.
+Spaces fldigi puts inside a callsign are removed before scoring.
+
+fldigi's score depends on its settings, so four were run: squelch off / on x no lead-in / 3 s of matched noise before each clip.
+fldigi is quoted at its **best** setting (squelch on, no lead-in), chosen on these same clips. That choice favours fldigi.
+
+CER (whole callsigns correct in brackets; 95% bootstrap CI over clips for fldigi):
+
+| clips (≥ -10 dB) | n | Baseline | **fldigi, best setting** | CRNN v1 | Conformer-ft |
+|---|---:|---:|---:|---:|---:|
+| all | 132 | 1.094 (47) | 0.648 (1), CI 0.60–0.70 | **0.384 (60)** | 0.432 (59) |
+| quiet band | 71 | 0.949 (33) | 0.576 (0), CI 0.50–0.65 | 0.207 (44) | **0.169 (46)** |
+| quiet, -10 … 0 dB | 23 | 1.735 (1) | 0.912 (0) | 0.431 (6) | **0.353 (6)** |
+| busy band | 61 | 1.259 (14) | 0.730 (1), CI 0.66–0.80 | **0.588 (16)** | 0.734 (13) |
+
+All four fldigi settings (CER on all 132 clips / whole callsigns): squelch off 0.776 / 9, squelch on **0.648** / 1,
+3 s lead-in + squelch off 0.774 / 2, 3 s lead-in + squelch on 0.738 / 6. Taking the best of the four settings separately for every
+clip (an oracle no real user has) gives 0.548 overall, 0.475 quiet, 0.631 busy. Per-clip outputs: `results_fldigi/fldigi_per_file.csv`.
+
+**fldigi's main failure: the first element.** On strong, quiet signals fldigi usually gets everything except the first character,
+and the error is always the first dot or dash going missing: `CS3B` → `RS3B` (`-.-.` → `.-.`), `OH2B` → `MH2B` (`---` → `--`),
+`4U1UN` → `VU1UN` (`....-` → `...-`). This happened on 18 of the 24 quiet clips at ≥ 5 dB (best setting). It is not the clip cut:
+every clip keeps 0.4 s before the callsign, and the 3 s lead-in did not remove it. It looks like fldigi's decoder needs one element
+to settle after a quiet gap, which also happens on air (the beacons share one frequency and each callsign follows a pause).
+To bound how much this costs fldigi, the scores were recomputed forgiving any error in the first character (a generous upper bound
+for fldigi; the models get no such allowance): 0.429 overall, 0.354 quiet, 0.515 busy.
+
+**Conclusions**
+1. **The neural decoders beat fldigi in normal conditions.** Quiet band: 17% (Conformer-ft) / 21% (CRNN v1) vs 58% CER for fldigi
+   at its best setting, and still vs 35% even when fldigi's first-character errors are forgiven. Weak quiet signals (-10 … 0 dB):
+   35% vs 91%.
+2. **Overall: 38% (CRNN v1) vs 65% for fldigi.** With fldigi's first-character errors forgiven the gap shrinks to 38% vs 43%,
+   so the overall margin depends on that one failure mode.
+3. **Busy bands: no clear winner.** CRNN v1 (59%) beats fldigi's standard score (73%) but not the first-character-forgiven score
+   (52%), and Conformer-ft (73%) is level with fldigi. Busy-band decoding remains the open problem for every system.
+4. The baseline in this repo is weaker than fldigi (109% vs 65% overall), so fldigi is the comparison to quote.
+
+Limitations: the model columns use beam search with the character LM; fldigi has no language model. Model per-clip outputs from the
+pooled run were not saved, so the CIs above are for fldigi only, not paired differences; the gaps in conclusion 1 are several times
+the width of fldigi's CI.

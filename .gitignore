@@ -14,3 +14,9 @@ real_data/beacons/
 results/*
 results_*/
 !results/summary_cer_vs_snr.png
+
+fldigi.exe
+flarq.exe
+uninstall.exe
+locale/
+results_fldigi/

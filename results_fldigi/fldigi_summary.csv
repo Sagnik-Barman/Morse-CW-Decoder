@@ -1,0 +1,25 @@
+system,group,n,cer,wer
+fldigi_lead0s_sqoff,all,132,0.77551,0.93182
+fldigi_lead0s_sqoff,quiet,71,0.71975,0.90141
+fldigi_lead0s_sqoff,"quiet, -10..0 dB",23,0.88235,1.00000
+fldigi_lead0s_sqoff,busy,61,0.83942,0.96721
+fldigi_lead0s_sqoff,source wessex,112,0.78514,0.91964
+fldigi_lead0s_sqoff,source us,20,0.72222,1.00000
+fldigi_lead0s_sqon,all,132,0.64796,0.99242
+fldigi_lead0s_sqon,quiet,71,0.57643,1.00000
+fldigi_lead0s_sqon,"quiet, -10..0 dB",23,0.91176,1.00000
+fldigi_lead0s_sqon,busy,61,0.72993,0.98361
+fldigi_lead0s_sqon,source wessex,112,0.65261,0.99107
+fldigi_lead0s_sqon,source us,20,0.62222,1.00000
+fldigi_lead3s_sqoff,all,132,0.77381,0.98485
+fldigi_lead3s_sqoff,quiet,71,0.68790,0.97183
+fldigi_lead3s_sqoff,"quiet, -10..0 dB",23,0.90196,1.00000
+fldigi_lead3s_sqoff,busy,61,0.87226,1.00000
+fldigi_lead3s_sqoff,source wessex,112,0.77108,0.98214
+fldigi_lead3s_sqoff,source us,20,0.78889,1.00000
+fldigi_lead3s_sqon,all,132,0.73810,0.95455
+fldigi_lead3s_sqon,quiet,71,0.63376,0.95775
+fldigi_lead3s_sqon,"quiet, -10..0 dB",23,0.93137,1.00000
+fldigi_lead3s_sqon,busy,61,0.85766,0.95082
+fldigi_lead3s_sqon,source wessex,112,0.75100,0.94643
+fldigi_lead3s_sqon,source us,20,0.66667,1.00000
