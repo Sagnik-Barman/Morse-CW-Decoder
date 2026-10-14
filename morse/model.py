@@ -128,9 +128,11 @@ class ConvModule(nn.Module):
 
 
 class SelfAttention(nn.Module):
-    """Multi-head self-attention via F.scaled_dot_product_attention, which uses
-    memory-efficient fused kernels on the GPU instead of materialising the full
-    (B, heads, T, T) attention matrix -- important on 6-8 GB cards."""
+    """Multi-head self-attention via F.scaled_dot_product_attention. Its fused kernels avoid
+    materialising the full (B, heads, T, T) attention matrix, but need a head dim that is a multiple
+    of 8; the default Conformer (d_model 144, 4 heads -> 36) falls back to the plain "math" path.
+    Keep attention dropout at 0 there: on the math path it adds a full-size tensor per layer, which
+    pushed training past a 6 GB GPU's memory (see scripts/speed_dropout.py)."""
 
     def __init__(self, d, heads=4, dropout=0.1):
         super().__init__()

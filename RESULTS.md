@@ -73,6 +73,22 @@ All numbers are **character error rate (CER)**. The test set is 2,000 synthetic 
 6. **Practical cost:** the CRNN trains about 1.5× faster on this GPU (150 vs 100 clips/s, even with the
    Conformer's attention-dropout speed fix). The Conformer's extra cost buys roughly 1 point of overall CER.
 
+**The Conformer speed fix (RTX 4050 laptop, 6 GB).** The head dim (144 / 4 heads = 36) is not a multiple of 8, so PyTorch's
+fused attention kernels can't run (FlashAttention is also not in the Windows build) and attention uses the plain "math" path
+(`scripts/sdpa_check.py`). On that path, attention dropout stores an extra full-size attention tensor per layer for the backward pass.
+`scripts/speed_dropout.py` (one training step, batch 32, each setting in a fresh process):
+
+| attention dropout | precision | ms / step | clips/s | peak GB |
+|---|---|---:|---:|---:|
+| 0.1 | bf16 | 742 | 43 | 5.58 |
+| 0.1 | fp16 | 760 | 42 | 5.58 |
+| 0 | bf16 | 371 | 86 | 4.52 |
+| 0 | fp16 | 376 | 85 | 4.52 |
+
+With dropout the step needs 6.2 GB reserved on a 6.0 GB card, so Windows spills into system RAM and the step takes 2× as long;
+precision makes no difference. Setting attention dropout to 0 cut peak memory 19% and doubled the speed (the training run itself
+went from about 35 to about 100 clips/s). The same spill explains batch 64 (9 GB): 12 clips/s, hence batch 32 × 2 accumulation steps.
+
 ## Caveats
 
 - These results are on **synthetic** audio from the same simulator used for training. The real-audio

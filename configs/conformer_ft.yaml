@@ -14,8 +14,11 @@ model:
   conv_dim: 144
   dropout: 0.1
   frontend: {n_fft: 256, win_length: 200, hop_length: 64, fmin: 200.0, fmax: 1400.0}
-  # attn_dropout 0: dropout inside attention forces a slow attention kernel (2x slower on an RTX 4050),
-  # and with endless synthetic data there is nothing to overfit anyway
+  # attn_dropout 0: head dim 144/4 = 36 is not a multiple of 8, so PyTorch's fused attention kernels can't
+  # run and attention uses the plain "math" path. There, dropout keeps an extra (B, heads, T, T) tensor per
+  # layer for the backward pass: peak memory 5.6 vs 4.5 GB at batch 32, which overflows a 6 GB laptop GPU
+  # into system RAM and halves the speed (scripts/speed_dropout.py). With endless synthetic data there is
+  # nothing to overfit, so attention dropout is not needed.
   encoder: {d_model: 144, layers: 8, heads: 4, ff_mult: 4, kernel: 15, dropout: 0.1, attn_dropout: 0.0}
 
 synth:
